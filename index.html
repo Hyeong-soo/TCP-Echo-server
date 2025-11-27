@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCP Echo Client</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        #log {
+            border: 1px solid #ccc;
+            padding: 1rem;
+            height: 300px;
+            overflow-y: scroll;
+            background: #f9f9f9;
+            margin-bottom: 1rem;
+        }
+
+        .message {
+            margin-bottom: 0.5rem;
+        }
+
+        .sent {
+            color: blue;
+        }
+
+        .received {
+            color: green;
+            font-weight: bold;
+        }
+
+        .error {
+            color: red;
+        }
+
+        input {
+            padding: 0.5rem;
+            width: 70%;
+        }
+
+        button {
+            padding: 0.5rem;
+            width: 20%;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>TCP Echo Client (Web)</h1>
+    <div id="log"></div>
+    <form id="chatForm">
+        <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." required autocomplete="off">
+        <button type="submit">전송</button>
+    </form>
+
+    <script>
+        const log = document.getElementById('log');
+        const form = document.getElementById('chatForm');
+        const input = document.getElementById('messageInput');
+        let ws;
+
+        function appendLog(text, type) {
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            div.textContent = text;
+            log.appendChild(div);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function connect() {
+            ws = new WebSocket('ws://' + window.location.host + '/ws');
+
+            ws.onopen = () => {
+                appendLog('서버에 연결되었습니다.', 'received');
+            };
+
+            ws.onmessage = (event) => {
+                appendLog(`받음: ${event.data}`, 'received');
+            };
+
+            ws.onclose = () => {
+                appendLog('연결이 종료되었습니다. 재연결 시도 중...', 'error');
+                setTimeout(connect, 1000);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket Error:', error);
+                appendLog('연결 에러 발생', 'error');
+            };
+        }
+
+        connect();
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const message = input.value;
+            if (!message) return;
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(message);
+                appendLog(`보냄: ${message}`, 'sent');
+                input.value = '';
+            } else {
+                appendLog('서버와 연결되어 있지 않습니다.', 'error');
+            }
+        });
+    </script>
+</body>
+
+</html>
