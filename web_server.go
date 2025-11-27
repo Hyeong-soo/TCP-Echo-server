@@ -88,6 +88,10 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// WebSocket 연결이 끊기면 TCP 연결도 강제로 닫아서
+	// 수신 대기 중인 고루틴(reader.ReadString)이 에러를 내고 종료되게 함
+	tcpConn.Close()
+
 	// 종료 시그널 대기 (TCP 수신 고루틴이 끝날 때까지)
 	<-done
 }

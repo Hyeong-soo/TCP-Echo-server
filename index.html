@@ -54,16 +54,23 @@
 
 <body>
     <h1>TCP Echo Client (Web)</h1>
+    <div style="margin-bottom: 1rem;">
+        <button id="connectBtn" onclick="connect()">서버 연결</button>
+        <button id="disconnectBtn" onclick="disconnect()" disabled>연결 끊기</button>
+    </div>
     <div id="log"></div>
     <form id="chatForm">
-        <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." required autocomplete="off">
-        <button type="submit">전송</button>
+        <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." required autocomplete="off" disabled>
+        <button type="submit" id="sendBtn" disabled>전송</button>
     </form>
 
     <script>
         const log = document.getElementById('log');
         const form = document.getElementById('chatForm');
         const input = document.getElementById('messageInput');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const sendBtn = document.getElementById('sendBtn');
         let ws;
 
         function appendLog(text, type) {
@@ -74,11 +81,21 @@
             log.scrollTop = log.scrollHeight;
         }
 
+        function updateUI(isConnected) {
+            connectBtn.disabled = isConnected;
+            disconnectBtn.disabled = !isConnected;
+            input.disabled = !isConnected;
+            sendBtn.disabled = !isConnected;
+        }
+
         function connect() {
+            if (ws && ws.readyState !== WebSocket.CLOSED) return;
+
             ws = new WebSocket('ws://' + window.location.host + '/ws');
 
             ws.onopen = () => {
                 appendLog('서버에 연결되었습니다.', 'received');
+                updateUI(true);
             };
 
             ws.onmessage = (event) => {
@@ -86,17 +103,23 @@
             };
 
             ws.onclose = () => {
-                appendLog('연결이 종료되었습니다. 재연결 시도 중...', 'error');
-                setTimeout(connect, 1000);
+                appendLog('연결이 종료되었습니다.', 'error');
+                updateUI(false);
+                ws = null;
             };
 
             ws.onerror = (error) => {
                 console.error('WebSocket Error:', error);
                 appendLog('연결 에러 발생', 'error');
+                updateUI(false);
             };
         }
 
-        connect();
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
